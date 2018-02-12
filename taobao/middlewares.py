@@ -4,11 +4,13 @@
 #
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-from scrapy import signals
 import base64
-import taobao.config
-from taobao.proxypool.proxy import pool
 import random
+
+from scrapy import signals
+
+from taobao.proxypool.proxy import pool
+from taobao.settings import PROXIES as proxy
 
 
 class UserAgentMiddleware(object):
@@ -35,8 +37,8 @@ class AbuProxyMiddleware(object):
 
     def process_request(self, request, spider):
         # 代理隧道验证信息
-        proxyUser = taobao.config.PROXIES['user']
-        proxyPass = taobao.config.PROXIES['passwd']
+        proxyUser = proxy['user']
+        proxyPass = proxy['passwd']
         proxyAuth = "Basic " + base64.urlsafe_b64encode(bytes((proxyUser + ":" + proxyPass), "ascii")).decode("utf8")
 
         request.meta['proxy'] = "http://http-dyn.abuyun.com:9020"
@@ -136,4 +138,3 @@ class TaobaoDownloaderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
-

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-import scrapy
 import json
-from taobao.config import KEYWORDS as keywords
+
+import scrapy
+
 
 class PhoneListSpider(scrapy.Spider):
     name = 'phonelist'
@@ -17,6 +18,7 @@ class PhoneListSpider(scrapy.Spider):
     def __init__(self):
         # set a list of keywords and initialize the start_urls
         init_url = 'https://s.m.taobao.com/search?q={}&m=api4h5&cat=16&style=list&n=44&page='
+        keywords = self.settings.get('KEYWORDS')
         for kwd in keywords:
             self.start_urls.append(init_url.format(kwd))
 

@@ -14,7 +14,26 @@ BOT_NAME = 'taobao'
 SPIDER_MODULES = ['taobao.spiders']
 NEWSPIDER_MODULE = 'taobao.spiders'
 
+# 图片保存路径
 IMAGES_STORE = 'pics'
+
+# MongoDB
+MONGO_URI = 'mongodb://localhost:27017'
+MONGO_DATABASE = 'taobao'
+
+# search keywords
+KEYWORDS = [
+    '短袖', '长袖', '同款', '森系', '日系', '小清新',
+    '风衣', '大衣', '西装', '连衣裙', '半身裙', '针织衫',
+    '高腰裤', '毛呢外套', '衬衫', '卫衣', '短裤', 'T恤'
+]
+
+# Abu proxy settings
+PROXIES = {
+    'ip_port': 'http-dyn.abuyun.com:9020',
+    'user': 'HE307V7G720N643D',
+    'passwd': '50B19E042761C968'
+}
 
 
 RETRY_TIMES = 10
@@ -97,9 +116,9 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    # 'taobao.pipelines.DuplicatesPipeline': 200,
-    'taobao.pipelines.MongoPipeline': 100,
-    'scrapy.pipelines.images.ImagesPipeline': 400
+    'taobao.pipelines.DuplicatesPipeline': 100,
+    'taobao.pipelines.MongoPipeline': 200,
+    'taobao.pipelines.CustomImagesPipeline': 190
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

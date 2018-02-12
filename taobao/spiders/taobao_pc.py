@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-import scrapy
 import json
 import re
-from taobao.config import KEYWORDS as keywords
+from json import JSONDecodeError
+
+import scrapy
+from scrapy.utils.project import get_project_settings
+
 from taobao.items import TaobaoItem
 
 
@@ -15,14 +18,16 @@ class PCListSpider(scrapy.Spider):
     ]
     start_urls = []
     custom_settings = {
-        # 'JOBDIR': 'crawls/pclist',
-        'LOG_LEVEL': 'INFO'
+        'JOBDIR': 'crawls/pclist',
+        'LOG_LEVEL': 'INFO',
         'LOG_FILE': 'crawls/pclist.log'
     }
 
     def __init__(self):
         # set a list of keywords and initialize the start_urls
         init_url = 'https://s.taobao.com/search?cat=16&ajax=true&q={}&data-key=uniq&data-value=imgo'
+        settings = get_project_settings()
+        keywords = settings.get('KEYWORDS')
         for kwd in keywords:
             self.start_urls.append(init_url.format(kwd))
             # self.logger.info(init_url.format(kwd))
@@ -43,10 +48,10 @@ class PCListSpider(scrapy.Spider):
             # create item and yeild
             for item in itemlist:
                 product = TaobaoItem()
-                product['name'] = item['raw_title'],
-                # product['sale'] = item['view_sales'],
-                product['comment'] = item['comment_count'],
-                product['_id'] = item['nid'],
+                product['name'] = item['raw_title']
+                # product['sale'] = item['view_sales']
+                product['comment'] = item['comment_count']
+                product['_id'] = item['nid']
                 product['cover_url'] = item['pic_url'][2:]
                 request = scrapy.Request(
                     'http://hws.m.taobao.com/cache/wdetail/5.0/?id={}'.format(item['nid']),
@@ -59,12 +64,13 @@ class PCListSpider(scrapy.Spider):
 
         # set url for next page
         num = response.url.split('=')[-1]
+        new_url = ''
         if num == 'imgo':
             new_url = response.url.split('uniq')[0] \
-                + 's&uniq=imgo&data-value=44&s=0'
+                      + 's&uniq=imgo&data-value=44&s=0'
         elif num != '4180':
             base_url = response.url.split('data-value')[0] \
-                + 'data-value={}&s={}'
+                       + 'data-value={}&s={}'
             new_url = base_url.format(self.addi(num, 88), self.addi(num, 44))
         yield scrapy.Request(
             new_url, callback=self.parse,
@@ -72,15 +78,21 @@ class PCListSpider(scrapy.Spider):
 
     def parse_sale(self, response):
         product = response.meta['item']
-        res = json.loads(response.body_as_unicode())
+        try:
+            res = json.loads(response.body_as_unicode())
+        except JSONDecodeError:
+            request = scrapy.Request(
+                'http://hws.m.taobao.com/cache/wdetail/5.0/?id={}'.format(product['_id']),
+                callback=self.parse_sale,
+                errback=self.errback_http)
+            request.meta['item'] = product
+            return request
         data = res['data']['apiStack'][0]['value']
         product['sale'] = re.search('totalSoldQuantity.+?(\d+)', data).group(1)
         cur_id = response.url.split('=')[1]
-        # param = {}
-        # param['item_num_id'] = product['_id']
-        # param = json.dumps(param)
         request = scrapy.Request(
-            'http://hws.m.taobao.com/cache/mtop.wdetail.getItemDescx/4.1/?data=%7B%22item_num_id%22%3A%22{}%22%7D'.format(cur_id),
+            'http://hws.m.taobao.com/cache/mtop.wdetail.getItemDescx/4.1/?data=%7B%22item_num_id%22%3A%22{}%22%7D'.format(
+                cur_id),
             callback=self.parse_pic,
             errback=self.errback_http)
         request.meta['item'] = product
